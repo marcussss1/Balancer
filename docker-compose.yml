@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+  api:
+    hostname: "api"
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: api
+    image: api
+    ports:
+      - "8080:8080"
+    restart: always
+    networks:
+      - backend-network
+
+  prometheus:
+    hostname: "prometheus"
+    container_name: "prometheus"
+    image: prom/prometheus:latest
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - backend-network
+    environment:
+      TZ: "Europe/Moscow"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    container_name: "grafana"
+    image: grafana/grafana:latest
+    volumes:
+      - ./monitoring/grafana/data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - backend-network
+    environment:
+      TZ: "Europe/Moscow"
+      GF_INSTALL_PLUGINS: 'grafana-clock-panel,grafana-simple-json-datasource,vonage-status-panel'
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    user: "104:107"
+
+networks:
+  backend-network:
+    name: "backend-network"
+    driver: bridge
